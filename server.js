@@ -105,6 +105,20 @@ app.post('/send-email', (req, res) => {
   });
 });
 
+
+// Ruta temporal de depuración para ver tokens
+app.get('/debug', (req, res) => {
+  if (!req.session.usuario) return res.send("Sin sesión");
+  db.get("SELECT session_token FROM usuarios WHERE usuario = ?", [req.session.usuario], (err, row) => {
+    res.send({
+      usuario: req.session.usuario,
+      token_en_sesion: req.session.token,
+      token_en_bd: row ? row.session_token : null
+    });
+  });
+});
+
+
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
