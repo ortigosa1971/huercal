@@ -17,7 +17,7 @@ app.use(session({
 }));
 
 // Crear tabla usuarios si no existe
-=======
+
 const SQLiteStore = require('connect-sqlite3')(session);
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -47,7 +47,7 @@ app.use(session({
   cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 día
 }));
 
- 802d4accab14593b07c94a154b0974ad68857ef4
+
 db.run(`CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   usuario TEXT UNIQUE,
