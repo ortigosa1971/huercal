@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 node_modules/
 db/usuarios.db
 .env
+=======
+echo node_modules/ > .gitignore
+echo db/usuarios.db >> .gitignore
+echo .env >> .gitignore
+>>>>>>> 8f5dff7 (Subida para Render con sesión única)
