@@ -31,6 +31,14 @@ app.use(session({
 }));
 
 // Crear tabla si no existe
+
+db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+  sid TEXT PRIMARY KEY,
+  sess TEXT NOT NULL,
+  expired INTEGER NOT NULL
+)`).run();
+
+
 db.prepare(`CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   usuario TEXT UNIQUE,
@@ -72,25 +80,20 @@ app.post('/login', (req, res) => {
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
     // Borrar cualquier sesión activa del mismo usuario
-    const sesiones = db.prepare("SELECT sid, sess FROM sessions").all();
-    sesiones.forEach(s => {
-      try {
-        const datos = JSON.parse(s.sess);
-        if (datos.usuario === usuario) {
-          db.prepare("DELETE FROM sessions WHERE sid = ?").run(s.sid);
-        }
-      } catch (err) {
-        console.error("Error al procesar sesión previa:", err.message);
-      }
-    });
-
     const token = crypto.randomUUID();
     db.prepare("UPDATE usuarios SET session_token = ? WHERE usuario = ?").run(token, usuario);
 
-    req.session.usuario = usuario;
-    req.session.token = token;
+    req.session.regenerate(err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send("Error interno al regenerar sesión");
+      }
 
-    res.redirect('/inicio');
+      req.session.usuario = usuario;
+      req.session.token = token;
+
+      res.redirect('/inicio');
+    });
   } else {
     res.redirect('/login.html?error=1');
   }
