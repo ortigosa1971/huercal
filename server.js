@@ -81,7 +81,7 @@ app.post('/login', (req, res) => {
     const sesiones = req.sessionStore.sessions || {};
     const tokenValido = Object.values(sesiones).some(s => s.includes(tokenEnUso));
 
-    if (tokenEnUso && tokenValido) {
+    if (tokenValido) {
       return res.send("❌ Este usuario ya está conectado desde otro dispositivo.");
     }
 
