@@ -19,19 +19,15 @@
     <button type="submit" class="bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded">Entrar</button>
   </form>
 
-  <!-- Aquí mostraremos mensajes si el servidor devuelve alguno -->
+  <!-- Mostrar mensaje de error si viene desde ?error=1 -->
   <script>
-    // Esto captura mensajes enviados directamente como texto desde el servidor
-    fetch(window.location.href)
-      .then(res => res.text())
-      .then(html => {
-        if (html.includes("Usuario o contraseña incorrectos")) {
-          const msg = document.createElement("p");
-          msg.textContent = "⚠️ Usuario o contraseña incorrectos";
-          msg.className = "text-red-500 mt-4";
-          document.body.appendChild(msg);
-        }
-      });
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === '1') {
+      const msg = document.createElement("p");
+      msg.textContent = "⚠️ Usuario o contraseña incorrectos";
+      msg.className = "text-red-500 mt-4";
+      document.body.appendChild(msg);
+    }
   </script>
 </body>
 </html>
