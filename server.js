@@ -30,7 +30,10 @@ app.use(session({
   secret: 'mi_secreto_super_seguro',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 día
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax' // ⚠️ Añadido para compatibilidad con políticas modernas de cookies
+  }
 }));
 
 // Crear tabla usuarios si no existe
