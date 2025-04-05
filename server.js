@@ -81,7 +81,19 @@ app.post('/login', (req, res) => {
     db.prepare("DELETE FROM sessions WHERE expire < datetime('now')").run();
 
     const tokenEnUso = row.session_token;
-    const tokenValido = tokenEnUso && db.prepare("SELECT COUNT(*) as total FROM sessions WHERE sess LIKE ?").get(`%${tokenEnUso}%`).total > 0;
+    let tokenValido = false;
+
+    if (tokenEnUso) {
+      const sesiones = db.prepare("SELECT sess FROM sessions").all();
+      tokenValido = sesiones.some(s => {
+        try {
+          const datos = JSON.parse(s.sess);
+          return datos.token === tokenEnUso;
+        } catch (err) {
+          return false;
+        }
+      });
+    }
 
     if (tokenValido) {
       return res.send("❌ Este usuario ya está conectado desde otro dispositivo.");
