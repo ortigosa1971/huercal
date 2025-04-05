@@ -80,7 +80,7 @@ app.post('/login', (req, res) => {
     req.session.token = token;
     res.redirect('/inicio');
   } else {
-    res.send("Usuario o contraseña incorrectos");
+    res.redirect('/login.html?error=1');
   }
 });
 
