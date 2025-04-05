@@ -118,8 +118,13 @@ app.post('/send-email', (req, res) => {
   });
 });
 
-// Ruta para crear el usuario por defecto desde la web
+// Ruta protegida con clave para crear el usuario por defecto desde la web
 app.get('/crear-usuario-default', (req, res) => {
+  const clave = req.query.clave;
+  if (clave !== 'segura123') {
+    return res.status(401).send('⛔ Acceso no autorizado');
+  }
+
   const usuario = 'elias';
   const password = '1234';
 
