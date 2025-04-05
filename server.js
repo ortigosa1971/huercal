@@ -1,3 +1,5 @@
+// ✅ server.js (corregido definitivo)
+
 const express = require('express');
 const session = require('express-session');
 const Database = require('better-sqlite3');
@@ -15,6 +17,20 @@ const port = process.env.PORT || 3000;
 const db = new Database('./db/usuarios.db', { verbose: console.log });
 const BetterSqlite3Store = require('better-sqlite3-session-store')(session);
 
+// Crear tabla usuarios y sessions si no existen
+db.prepare(`CREATE TABLE IF NOT EXISTS usuarios (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario TEXT UNIQUE,
+  password TEXT,
+  session_token TEXT
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+  sid TEXT PRIMARY KEY,
+  sess TEXT NOT NULL,
+  expired INTEGER NOT NULL
+)`).run();
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -24,27 +40,8 @@ app.use(session({
   secret: 'mi_secreto_super_seguro',
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'lax'
-  }
+  cookie: { maxAge: 24 * 60 * 60 * 1000, sameSite: 'lax' }
 }));
-
-// Crear tabla si no existe
-
-db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
-  sid TEXT PRIMARY KEY,
-  sess TEXT NOT NULL,
-  expired INTEGER NOT NULL
-)`).run();
-
-
-db.prepare(`CREATE TABLE IF NOT EXISTS usuarios (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  usuario TEXT UNIQUE,
-  password TEXT,
-  session_token TEXT
-)`).run();
 
 // Middleware sesión única
 function verificarSesionUnica(req, res, next) {
@@ -79,7 +76,6 @@ app.post('/login', (req, res) => {
 
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
-    // Borrar cualquier sesión activa del mismo usuario
     const token = crypto.randomUUID();
     db.prepare("UPDATE usuarios SET session_token = ? WHERE usuario = ?").run(token, usuario);
 
@@ -96,55 +92,6 @@ app.post('/login', (req, res) => {
     });
   } else {
     res.redirect('/login.html?error=1');
-  }
-});
-
-app.get('/debug', (req, res) => {
-  if (!req.session.usuario) return res.send("Sin sesión");
-  const row = db.prepare("SELECT session_token FROM usuarios WHERE usuario = ?").get(req.session.usuario);
-  res.send({
-    usuario: req.session.usuario,
-    token_en_sesion: req.session.token,
-    token_en_bd: row ? row.session_token : null
-  });
-});
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-app.post('/send-email', (req, res) => {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: 'eliasalfarnate@gmail.com',
-    subject: 'Solicitud de acceso',
-    text: 'Un usuario ha solicitado acceso a la estación meteorológica.',
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) return res.status(500).send(error.toString());
-    res.status(200).send('Correo enviado: ' + info.response);
-  });
-});
-
-app.get('/crear-usuario-default', (req, res) => {
-  const clave = req.query.clave;
-  if (clave !== 'segura123') {
-    return res.status(401).send('⛔ Acceso no autorizado');
-  }
-
-  const usuario = 'elias';
-  const password = '1234';
-
-  try {
-    db.prepare("INSERT OR REPLACE INTO usuarios (usuario, password) VALUES (?, ?)").run(usuario, password);
-    res.send("✅ Usuario creado: elias / 1234");
-  } catch (err) {
-    res.status(500).send("Error al crear el usuario: " + err.message);
   }
 });
 
