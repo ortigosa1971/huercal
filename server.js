@@ -118,6 +118,19 @@ app.post('/send-email', (req, res) => {
   });
 });
 
+// Ruta para crear el usuario por defecto desde la web
+app.get('/crear-usuario-default', (req, res) => {
+  const usuario = 'elias';
+  const password = '1234';
+
+  try {
+    db.prepare("INSERT OR REPLACE INTO usuarios (usuario, password) VALUES (?, ?)").run(usuario, password);
+    res.send("✅ Usuario creado: elias / 1234");
+  } catch (err) {
+    res.status(500).send("Error al crear el usuario: " + err.message);
+  }
+});
+
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
