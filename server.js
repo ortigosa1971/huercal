@@ -77,9 +77,14 @@ app.post('/login', (req, res) => {
 
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
-    if (row.session_token) {
+    const tokenEnUso = row.session_token;
+    const sesiones = req.sessionStore.sessions || {};
+    const tokenValido = Object.values(sesiones).some(s => s.includes(tokenEnUso));
+
+    if (tokenEnUso && tokenValido) {
       return res.send("❌ Este usuario ya está conectado desde otro dispositivo.");
     }
+
     const token = crypto.randomUUID();
     db.prepare("UPDATE usuarios SET session_token = ? WHERE usuario = ?").run(token, usuario);
     req.session.usuario = usuario;
