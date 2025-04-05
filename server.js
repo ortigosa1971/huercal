@@ -1,6 +1,6 @@
 const express = require('express');
 const session = require('express-session');
-const sqlite3 = require('sqlite3').verbose(); // Declarar sqlite3 una sola vez
+const Database = require('better-sqlite3'); // Importamos better-sqlite3
 const path = require('path');
 const crypto = require('crypto');
 const cors = require('cors');
@@ -11,7 +11,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-const db = new sqlite3.Database('./db/usuarios.db');
+const db = new Database('./db/usuarios.db', { verbose: console.log }); // Usamos better-sqlite3
 
 // Configuración de sesiones
 const SQLiteStore = require('connect-sqlite3')(session);
@@ -30,24 +30,23 @@ app.use(session({
 }));
 
 // Crear tabla usuarios si no existe
-db.run(`CREATE TABLE IF NOT EXISTS usuarios (
+db.prepare(`CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   usuario TEXT UNIQUE,
   password TEXT,
   session_token TEXT
-)`);
+)`).run();
 
 // Middleware para validar sesión única
 function verificarSesionUnica(req, res, next) {
   if (!req.session.usuario || !req.session.token) return res.redirect('/login.html');
 
-  db.get("SELECT session_token FROM usuarios WHERE usuario = ?", [req.session.usuario], (err, row) => {
-    if (err || !row || row.session_token !== req.session.token) {
-      req.session.destroy(() => res.redirect('/login.html'));
-    } else {
-      next();
-    }
-  });
+  const row = db.prepare("SELECT session_token FROM usuarios WHERE usuario = ?").get(req.session.usuario);
+  if (!row || row.session_token !== req.session.token) {
+    req.session.destroy(() => res.redirect('/login.html'));
+  } else {
+    next();
+  }
 }
 
 // Ruta principal
@@ -69,31 +68,26 @@ app.get('/logout', (req, res) => {
 app.post('/login', (req, res) => {
   const { usuario, password } = req.body;
 
-  db.get("SELECT * FROM usuarios WHERE usuario = ? AND password = ?", [usuario, password], (err, row) => {
-    if (err) return res.status(500).send("Error en la base de datos");
-    if (row) {
-      const token = crypto.randomUUID();
-      db.run("UPDATE usuarios SET session_token = ? WHERE usuario = ?", [token, usuario], (err) => {
-        if (err) return res.status(500).send("Error guardando sesión");
-        req.session.usuario = usuario;
-        req.session.token = token;
-        res.redirect('/inicio');
-      });
-    } else {
-      res.send("Usuario o contraseña incorrectos");
-    }
-  });
+  const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
+  if (row) {
+    const token = crypto.randomUUID();
+    db.prepare("UPDATE usuarios SET session_token = ? WHERE usuario = ?").run(token, usuario);
+    req.session.usuario = usuario;
+    req.session.token = token;
+    res.redirect('/inicio');
+  } else {
+    res.send("Usuario o contraseña incorrectos");
+  }
 });
 
 // Ruta para ver los tokens de sesión
 app.get('/debug', (req, res) => {
   if (!req.session.usuario) return res.send("Sin sesión");
-  db.get("SELECT session_token FROM usuarios WHERE usuario = ?", [req.session.usuario], (err, row) => {
-    res.send({
-      usuario: req.session.usuario,
-      token_en_sesion: req.session.token,
-      token_en_bd: row ? row.session_token : null
-    });
+  const row = db.prepare("SELECT session_token FROM usuarios WHERE usuario = ?").get(req.session.usuario);
+  res.send({
+    usuario: req.session.usuario,
+    token_en_sesion: req.session.token,
+    token_en_bd: row ? row.session_token : null
   });
 });
 
