@@ -77,6 +77,9 @@ app.post('/login', (req, res) => {
 
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
+    // Limpiar sesiones expiradas antes de validar
+    db.prepare("DELETE FROM sessions WHERE expire < datetime('now')").run();
+
     const tokenEnUso = row.session_token;
     const tokenValido = tokenEnUso && db.prepare("SELECT COUNT(*) as total FROM sessions WHERE sess LIKE ?").get(`%${tokenEnUso}%`).total > 0;
 
