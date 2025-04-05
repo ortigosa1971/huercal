@@ -1,6 +1,6 @@
 const express = require('express');
 const session = require('express-session');
-const Database = require('better-sqlite3'); // Importamos better-sqlite3
+const Database = require('better-sqlite3');
 const path = require('path');
 const crypto = require('crypto');
 const cors = require('cors');
@@ -11,18 +11,22 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-const db = new Database('./db/usuarios.db', { verbose: console.log }); // Usamos better-sqlite3
 
-// Configuración de sesiones
-const SQLiteStore = require('connect-sqlite3')(session);
+// Base de datos SQLite
+const db = new Database('./db/usuarios.db', { verbose: console.log });
+
+// ⚠️ NUEVO: usar better-sqlite3-session-store
+const BetterSqlite3Store = require('better-sqlite3-session-store')(session);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Usar sesiones almacenadas en SQLite
+// ⚠️ NUEVO: store de sesiones con better-sqlite3
 app.use(session({
-  store: new SQLiteStore({ db: 'sessions.sqlite', dir: './db' }),
+  store: new BetterSqlite3Store({
+    client: db,
+  }),
   secret: 'mi_secreto_super_seguro',
   resave: false,
   saveUninitialized: false,
@@ -54,17 +58,17 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Ruta de inicio (requiere sesión única)
+// Ruta protegida
 app.get('/inicio', verificarSesionUnica, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'inicio.html'));
 });
 
-// Ruta de logout
+// Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login.html'));
 });
 
-// Ruta para login
+// Login
 app.post('/login', (req, res) => {
   const { usuario, password } = req.body;
 
@@ -80,7 +84,7 @@ app.post('/login', (req, res) => {
   }
 });
 
-// Ruta para ver los tokens de sesión
+// Ver sesión (debug)
 app.get('/debug', (req, res) => {
   if (!req.session.usuario) return res.send("Sin sesión");
   const row = db.prepare("SELECT session_token FROM usuarios WHERE usuario = ?").get(req.session.usuario);
