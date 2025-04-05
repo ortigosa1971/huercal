@@ -32,7 +32,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'lax' // ⚠️ Añadido para compatibilidad con políticas modernas de cookies
+    sameSite: 'lax'
   }
 }));
 
@@ -71,12 +71,15 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login.html'));
 });
 
-// Login
+// Login con validación de sesión activa
 app.post('/login', (req, res) => {
   const { usuario, password } = req.body;
 
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
+    if (row.session_token) {
+      return res.send("❌ Este usuario ya está conectado desde otro dispositivo.");
+    }
     const token = crypto.randomUUID();
     db.prepare("UPDATE usuarios SET session_token = ? WHERE usuario = ?").run(token, usuario);
     req.session.usuario = usuario;
