@@ -73,7 +73,8 @@ app.get('/logout', (req, res) => {
 
 // Login con validación de sesión activa
 app.post('/login', (req, res) => {
-  const { usuario, password } = req.body;
+  const usuario = req.body.usuario.trim();
+  const password = req.body.password.trim();
 
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
@@ -84,19 +85,15 @@ app.post('/login', (req, res) => {
     let tokenValido = false;
 
     if (tokenEnUso) {
-      const sesiones = db.prepare("SELECT sess FROM sessions").all();
-      tokenValido = sesiones.some(s => {
+      const sesiones = db.prepare("SELECT sess, sid FROM sessions").all();
+      sesiones.forEach(s => {
         try {
           const datos = JSON.parse(s.sess);
-          return datos.token === tokenEnUso;
-        } catch (err) {
-          return false;
-        }
+          if (datos.token === tokenEnUso) {
+            db.prepare("DELETE FROM sessions WHERE sid = ?").run(s.sid);
+          }
+        } catch {}
       });
-    }
-
-    if (tokenValido) {
-      return res.send("❌ Este usuario ya está conectado desde otro dispositivo.");
     }
 
     const token = crypto.randomUUID();
