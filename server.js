@@ -12,21 +12,15 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Base de datos SQLite
 const db = new Database('./db/usuarios.db', { verbose: console.log });
-
-// ⚠️ NUEVO: usar better-sqlite3-session-store
 const BetterSqlite3Store = require('better-sqlite3-session-store')(session);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ⚠️ NUEVO: store de sesiones con better-sqlite3
 app.use(session({
-  store: new BetterSqlite3Store({
-    client: db,
-  }),
+  store: new BetterSqlite3Store({ client: db }),
   secret: 'mi_secreto_super_seguro',
   resave: false,
   saveUninitialized: false,
@@ -36,7 +30,7 @@ app.use(session({
   }
 }));
 
-// Crear tabla usuarios si no existe
+// Crear tabla si no existe
 db.prepare(`CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   usuario TEXT UNIQUE,
@@ -44,69 +38,64 @@ db.prepare(`CREATE TABLE IF NOT EXISTS usuarios (
   session_token TEXT
 )`).run();
 
-// Middleware para validar sesión única
+// Middleware sesión única
 function verificarSesionUnica(req, res, next) {
   if (!req.session.usuario || !req.session.token) return res.redirect('/login.html');
 
   const row = db.prepare("SELECT session_token FROM usuarios WHERE usuario = ?").get(req.session.usuario);
   if (!row || row.session_token !== req.session.token) {
-    req.session.destroy(() => res.redirect('/login.html'));
+    req.session.destroy(() => {
+      res.redirect('/login.html?motivo=expirada');
+    });
   } else {
     next();
   }
 }
 
-// Ruta principal
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Ruta protegida
 app.get('/inicio', verificarSesionUnica, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'inicio.html'));
 });
 
-// Logout
 app.get('/logout', (req, res) => {
+  db.prepare("UPDATE usuarios SET session_token = NULL WHERE usuario = ?").run(req.session.usuario);
   req.session.destroy(() => res.redirect('/login.html'));
 });
 
-// Login con validación de sesión activa
 app.post('/login', (req, res) => {
   const usuario = req.body.usuario.trim();
   const password = req.body.password.trim();
 
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
-    // Limpiar sesiones expiradas antes de validar
-    db.prepare("DELETE FROM sessions WHERE expire < datetime('now')").run();
-
-    const tokenEnUso = row.session_token;
-    let tokenValido = false;
-
-    if (tokenEnUso) {
-      const sesiones = db.prepare("SELECT sess, sid FROM sessions").all();
-      sesiones.forEach(s => {
-        try {
-          const datos = JSON.parse(s.sess);
-          if (datos.token === tokenEnUso) {
-            db.prepare("DELETE FROM sessions WHERE sid = ?").run(s.sid);
-          }
-        } catch {}
-      });
-    }
+    // Borrar cualquier sesión activa del mismo usuario
+    const sesiones = db.prepare("SELECT sid, sess FROM sessions").all();
+    sesiones.forEach(s => {
+      try {
+        const datos = JSON.parse(s.sess);
+        if (datos.usuario === usuario) {
+          db.prepare("DELETE FROM sessions WHERE sid = ?").run(s.sid);
+        }
+      } catch (err) {
+        console.error("Error al procesar sesión previa:", err.message);
+      }
+    });
 
     const token = crypto.randomUUID();
     db.prepare("UPDATE usuarios SET session_token = ? WHERE usuario = ?").run(token, usuario);
+
     req.session.usuario = usuario;
     req.session.token = token;
+
     res.redirect('/inicio');
   } else {
     res.redirect('/login.html?error=1');
   }
 });
 
-// Ver sesión (debug)
 app.get('/debug', (req, res) => {
   if (!req.session.usuario) return res.send("Sin sesión");
   const row = db.prepare("SELECT session_token FROM usuarios WHERE usuario = ?").get(req.session.usuario);
@@ -117,7 +106,6 @@ app.get('/debug', (req, res) => {
   });
 });
 
-// Correo
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -140,7 +128,6 @@ app.post('/send-email', (req, res) => {
   });
 });
 
-// Ruta protegida con clave para crear el usuario por defecto desde la web
 app.get('/crear-usuario-default', (req, res) => {
   const clave = req.query.clave;
   if (clave !== 'segura123') {
