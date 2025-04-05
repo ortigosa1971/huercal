@@ -78,7 +78,7 @@ app.post('/login', (req, res) => {
   const row = db.prepare("SELECT * FROM usuarios WHERE usuario = ? AND password = ?").get(usuario, password);
   if (row) {
     const tokenEnUso = row.session_token;
-    const tokenValido = db.prepare("SELECT COUNT(*) as total FROM sessions WHERE sess LIKE ?").get(`%${tokenEnUso}%`).total > 0;
+    const tokenValido = tokenEnUso && db.prepare("SELECT COUNT(*) as total FROM sessions WHERE sess LIKE ?").get(`%${tokenEnUso}%`).total > 0;
 
     if (tokenValido) {
       return res.send("❌ Este usuario ya está conectado desde otro dispositivo.");
