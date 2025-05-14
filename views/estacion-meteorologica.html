@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estación Meteorológica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+    <h1 class="text-4xl text-blue-400 mb-8">Datos Meteorológicos</h1>
+    <div class="data-card">
+        <div class="data-title">🌡️ Temperatura</div>
+        <div class="data-value" id="temperature">-- °C</div>
+    </div>
+    <div class="data-card">
+        <div class="data-title">💧 Humedad</div>
+        <div class="data-value" id="humidity">-- %</div>
+    </div>
+    <div class="data-card">
+        <div class="data-title">🌬️ Viento</div>
+        <div class="data-value" id="windSpeed">-- km/h</div>
+    </div>
+    <div class="data-card">
+        <div class="data-title">🧭 Dirección del Viento</div>
+        <div class="data-value" id="windDirection">-- °</div>
+    </div>
+    <div class="data-card">
+        <div class="data-title">🌧️ Precipitación</div>
+        <div class="data-value" id="precipitation">-- mm</div>
+    </div>
+    <div class="data-card">
+        <div class="data-title">☀️ Radiación Solar</div>
+        <div class="data-value" id="solarRadiation">-- W/m²</div>
+    </div>
+    <script src="/public/js/scripts.js"></script>
+</body>
+</html>

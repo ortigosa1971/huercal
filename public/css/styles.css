@@ -1,0 +1,33 @@
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #0f172a;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    min-height: 100vh;
+}
+.data-card {
+    background-color: #1e293b;
+    padding: 20px;
+    margin: 15px;
+    border-radius: 15px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease;
+}
+.data-card:hover {
+    transform: scale(1.05);
+}
+.data-title {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #38bdf8;
+}
+.data-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
