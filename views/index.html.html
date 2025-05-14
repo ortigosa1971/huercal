@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estación Meteorológica</title>
+</head>
+<body>
+    <h1>Datos del Clima</h1>
+    <div>
+        <p>Temperatura: <span id="temperature">--</span></p>
+        <p>Humedad: <span id="humidity">--</span></p>
+        <p>Viento: <span id="wind">--</span></p>
+        <p>Presión: <span id="pressure">--</span></p>
+    </div>
+
+    <script>
+        async function cargarDatosClima() {
+            try {
+                const response = await fetch('/api/clima');
+                const data = await response.json();
+                const obs = data.observations[0].metric;
+                
+                document.getElementById('temperature').textContent = obs.temp + " °C";
+                document.getElementById('humidity').textContent = obs.humidity + " %";
+                document.getElementById('wind').textContent = obs.windSpeed + " km/h";
+                document.getElementById('pressure').textContent = obs.pressure + " hPa";
+            } catch (error) {
+                console.error('Error al cargar los datos del clima:', error.message);
+            }
+        }
+
+        cargarDatosClima();
+    </script>
+</body>
+</html>
